@@ -71,6 +71,6 @@ fabric.properties
 
 target/
 
-project/**/*.class
+
 
 *.class

@@ -1,5 +1,9 @@
 package excercises.part2afp
 
+import java.time.LocalTime
+import java.time.temporal.ChronoUnit.SECONDS
+
+
 import scala.annotation.tailrec
 
 
@@ -19,7 +23,7 @@ import scala.annotation.tailrec
     def filterEx(predicate: A => Boolean): MyStream[A]
     def take(n: Int): MyStream[A]
     def takeAsList(n: Int): List[A] = take(n).toList()
-
+    def reverse: MyStream[A]
     def filterTailrec[B >: A](predicate: A => Boolean): MyStream[A]
 
     //Should be final to prevent overriding toList in a none @tailrec fashion
@@ -62,6 +66,8 @@ import scala.annotation.tailrec
 
     //override def filterTailrec[B >: Nothing](predicate: B => Boolean): MyStream[B] = EmptyStream
     override def filterTailrec[B >: Nothing](predicate: Nothing => Boolean): MyStream[Nothing] = EmptyStream
+
+    override def reverse: MyStream[Nothing] = EmptyStream
   }
 
   class Cons[+A](private val hd: A, tl: => MyStream[A]) extends MyStream[A] {
@@ -115,14 +121,22 @@ import scala.annotation.tailrec
 
     }
 
+    def reverse: MyStream[A] = {
+      @tailrec
+      def reverseTailrec(input: MyStream[A], result: MyStream[A]): MyStream[A] =
+        if (input.isEmpty) result
+        else reverseTailrec(input.tail, input.head #:: result)
+
+      reverseTailrec(this, EmptyStream)
+    }
+
     override def filterTailrec[B >: A](predicate: A => Boolean): MyStream[A] = {
       @tailrec
       def filterSpecial[B >: A](stream: MyStream[B], predicate: B => Boolean, result: MyStream[B]): MyStream[B] = {
-        if (stream.isEmpty) result
-        else if (predicate(stream.head)) stream.head #:: stream.tail.filter(predicate)
+        if (stream.isEmpty) result.reverse
+        else if (predicate(stream.head)) filterSpecial(stream.tail, predicate, stream.head #:: result)
         else filterSpecial(stream.tail, predicate, result)
       }
-
       filterSpecial(this, predicate, EmptyStream)
     }
 
@@ -136,8 +150,16 @@ import scala.annotation.tailrec
 object LazyEvaluation extends App{
   val stream = MyStream.from[Int](0) (_+1)
 //  println(stream.take(100000).head)
-  val list = stream.take(10000).filterEx(_ < 10).toList() ///.filter(x => x < 10).takeAsList(40)
-  println(list)
+  //val lessThanTen = stream.take(10000000).filterTailrec(_ < 10).toList()
+  //println(lessThanTen)
+  println("MyStream")
+  val t1 = LocalTime.now()
+  val dividedBy3 = stream.take(10000000).filterTailrec(_ % 3 == 0)//.toList()
+  println(s"took ${SECONDS.between(t1, LocalTime.now())} seconds")
+  println("List")
+  val t2 = LocalTime.now()
+  val usureList = Range(0, 10000000).filter(_ % 3 == 0)
+  println(s"took ${SECONDS.between(t2, LocalTime.now())} seconds")
 //  stream.take(1000).foreach(x =>{
 //    print(x)
 //  })
