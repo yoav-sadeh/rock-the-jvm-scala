@@ -56,6 +56,7 @@ object ThreadCommunication extends App{
             buffer.wait()
           }
           println(s"[consumer] popped item: ${buffer.dequeue()}")
+          buffer.notify()
         }
 
         Thread.sleep(random.nextInt(500))
@@ -64,22 +65,25 @@ object ThreadCommunication extends App{
 
     val producer = new Thread(() => {
       val random = new Random()
+      var i = 0
       while(true){
         buffer.synchronized {
           if(buffer.size >= capacity) {
             println(s"[producer] buffer reached limit, waiting...")
             buffer.wait()
           }
-          println("[producer] queueing item: 11")
-          buffer.enqueue(11)
+          println(s"[producer] queueing item: $i")
+          buffer.enqueue(i)
+          i += 1
           buffer.notify()
         }
 
-        Thread.sleep(random.nextInt(500))
+        Thread.sleep(random.nextInt(250))
       }})
-
+    consumer.start()
+    producer.start()
   }
 
-
+prodConLargeBuffer()
 
 }
